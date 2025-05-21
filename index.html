@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的博客</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .notification-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .notification-content i {
+            color: #4CAF50;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <div class="header">
+            <p class="name">Casey</p>
+            <hr>
+            <p class="intro">
+                欢迎来到我的世界！<br>
+                首先，祝你今天有个好心情，<br>
+                其他不重要了。<br>
+            </p>
+        </div>
+        <hr>
+        <main class="list">
+            <script>
+                function formatDate(date) {
+                    return `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')} ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}:${date.getSeconds().toString().padStart(2,'0')}`;
+                }
+                
+                function sortByTime(container) {
+                    const items = Array.from(container.children);
+                    items.sort((a, b) => {
+                        const timeA = a.getAttribute('data-timestamp');
+                        const timeB = b.getAttribute('data-timestamp');
+                        return timeB - timeA;
+                    });
+                    
+                    items.forEach(item => container.appendChild(item));
+                }
+            </script>
+            
+            <script>
+                function addNewEntry(content, timestamp = Date.now()) {
+                    const date = new Date(timestamp);
+                    const formattedTime = formatDate(date);
+                    
+                    const entry = document.createElement('div');
+                    entry.className = 'entry';
+                    entry.setAttribute('data-timestamp', timestamp);
+                    
+                    const sentenceDiv = document.createElement('div');
+                    sentenceDiv.className = 'sentence';
+                    sentenceDiv.textContent = content;
+                    
+                    const timeDiv = document.createElement('div');
+                    timeDiv.className = 'time';
+                    timeDiv.textContent = formattedTime;
+                    
+                    entry.appendChild(sentenceDiv);
+                    entry.appendChild(timeDiv);
+                    
+                    const list = document.querySelector('.list');
+                    list.insertBefore(entry, list.firstChild);
+                    sortByTime(list);
+                }
+            </script>
+            
+            
+            
+            <script>
+                // 页面加载时自动排序
+                document.addEventListener('DOMContentLoaded', function() {
+                    const list = document.querySelector('.list');
+                    sortByTime(list);
+                    
+                    // 加载Markdown日记
+                    fetch('/diary.md?t=' + Date.now())
+                        .then(response => response.text())
+                        .then(text => {
+                            const lines = text.split('\n').filter(line => line.trim() && !line.startsWith('----'));
+                            lines.forEach(line => {
+                                if(line.startsWith('#')) return; // 跳过标题行
+                                const parts = line.split(' ');
+                                const dateStr = parts.slice(0, 2).join(' ');
+                                const content = parts.slice(2).join(' ');
+                                const date = new Date(dateStr);
+                                if(!isNaN(date.getTime())) {
+                                    addNewEntry(content, date.getTime());
+                                }
+                            });
+                        });
+                });
+                
+                // 每5分钟自动刷新
+                setInterval(() => {
+                    fetch('/diary.md?t=' + Date.now())
+                        .then(response => response.text())
+                        .then(text => {
+                            const lines = text.split('\n').filter(line => line.trim() && !line.startsWith('----'));
+                            const list = document.querySelector('.list');
+                            list.innerHTML = '';
+                            lines.forEach(line => {
+                                if(line.startsWith('#')) return;
+                                const parts = line.split(' ');
+                                const dateStr = parts.slice(0, 2).join(' ');
+                                const content = parts.slice(2).join(' ');
+                                const date = new Date(dateStr);
+                                if(!isNaN(date.getTime())) {
+                                    addNewEntry(content, date.getTime());
+                                }
+                            });
+                        });
+                }, 300000);
+            </script>
+        </main>
+        <footer>
+            <hr>
+            <p>© 2025 Casey</p>
+            <a href="#" id="email-link" class="email-icon">
+                <i class="fas fa-envelope"></i>
+            </a>
+        </footer>
+        <script>
+            document.getElementById('email-link').addEventListener('click', function(e) {
+                e.preventDefault();
+                const email = '1669676009@qq.com';
+                // 创建通知元素
+                const notification = document.createElement('div');
+                notification.className = 'notification';
+                notification.innerHTML = `
+                    <div class="notification-content">
+                        <i class="fas fa-check-circle"></i>
+                        <span>邮箱已复制: ${email}</span>
+                    </div>
+                `;
+                document.body.appendChild(notification);
+                
+                // 显示通知
+                setTimeout(() => notification.classList.add('show'), 10);
+                
+                // 3秒后自动隐藏
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+                
+                navigator.clipboard.writeText(email);
+            });
+        </script>
+    </div>
+</body>
+</html>
