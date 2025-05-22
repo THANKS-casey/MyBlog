@@ -70,6 +70,10 @@ hr {
   color: #fff;
 }
 
+.entry:hover .annotation {
+  color: gold;
+}
+
 footer {
   text-align: center;
   color: #666;

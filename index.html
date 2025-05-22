@@ -3,8 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的博客</title>
+    <title>Casey‘s Daily Blog</title>
     <link rel="stylesheet" href="css/main.css">
+    <style>
+        .annotation {
+            font-size: 0.8em;
+            color: #0066CC;
+            margin: 1px 0 12px 0;
+            font-style: italic;
+            text-align: center;
+            font-family: 'Noto Serif SC', serif;
+            font-weight: 700;
+        }
+        .sentence {
+            white-space: pre-line;
+            margin: 8px 0 4px 0;
+            font-size: 1.05em;
+            word-break: break-all;
+            line-height: 1.7;
+            transition: text-align 0.2s;
+        }
+        
+        .sentence.center {
+            text-align: center;
+            margin-left: auto;
+            margin-right: auto;
+            max-width: 80%;
+        }
+        
+        .sentence.left {
+            text-align: left;
+            margin-left: 0;
+            margin-right: 0;
+            padding-left: 16px;
+            padding-right: 16px;
+            max-width: 100%;
+        }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700&display=swap" rel="stylesheet">
@@ -69,7 +104,7 @@
             </script>
             
             <script>
-                function addNewEntry(content, timestamp = Date.now()) {
+                function addNewEntry(content, timestamp = Date.now(), annotation = '') {
                     const date = new Date(timestamp);
                     const formattedTime = formatDate(date);
                     
@@ -79,6 +114,14 @@
                     
                     const sentenceDiv = document.createElement('div');
                     sentenceDiv.className = 'sentence';
+                    
+                    // 判断是否为长内容
+                    const isLong = content.length > 40 || content.includes('\n');
+                    if(isLong) {
+                        sentenceDiv.classList.add('left');
+                    } else {
+                        sentenceDiv.classList.add('center');
+                    }
                     sentenceDiv.textContent = content;
                     
                     const timeDiv = document.createElement('div');
@@ -86,11 +129,21 @@
                     timeDiv.textContent = formattedTime;
                     
                     entry.appendChild(sentenceDiv);
+                    
+                    if(annotation) {
+                        const annotationDiv = document.createElement('div');
+                        annotationDiv.className = 'annotation';
+                        annotationDiv.textContent = annotation;
+                        entry.appendChild(annotationDiv);
+                    }
+                    
                     entry.appendChild(timeDiv);
                     
                     const list = document.querySelector('.list');
                     list.insertBefore(entry, list.firstChild);
                     sortByTime(list);
+                    
+                    return entry;
                 }
             </script>
             
@@ -98,53 +151,114 @@
             
             <script>
                 // 页面加载时自动排序
-                document.addEventListener('DOMContentLoaded', function() {
-                    const list = document.querySelector('.list');
-                    sortByTime(list);
-                    
-                    // 加载Markdown日记
-                    fetch('./diary.md?t=' + Date.now())
-                        .then(response => response.text())
-                        .then(text => {
-                            const lines = text.split('\n').filter(line => line.trim() && !line.startsWith('----'));
-                            lines.forEach(line => {
-                                if(line.startsWith('#')) return; // 跳过标题行
-                                const parts = line.split(' ');
-                                const dateStr = parts.slice(0, 2).join(' ');
-                                const content = parts.slice(2).join(' ');
-                                const date = new Date(dateStr);
-                                if(!isNaN(date.getTime())) {
-                                    addNewEntry(content, date.getTime());
-                                }
-                            });
-                        });
+document.addEventListener('DOMContentLoaded', function() {
+    const list = document.querySelector('.list');
+    sortByTime(list);
+    
+    // 加载Markdown日记
+    fetch('./diary.md?t=' + Date.now())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('网络响应失败');
+            }
+            return response.text();
+        })
+        .then(text => {
+                const lines = text.split('\n').filter(line => line.trim() && !line.startsWith('----'));
+                let lastEntryData = null;
+                const dateLineReg = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/;
+                lines.forEach(line => {
+                    if(line.startsWith('#')) return; // 跳过标题行
+                    if(line.startsWith('·')) {
+                        // 只更新注释，不渲染、不清空
+                        if(lastEntryData) {
+                            lastEntryData.annotation = line.slice(1).trim();
+                        }
+                    } else if(dateLineReg.test(line)) {
+                        // 新日期前渲染上一个
+                        if(lastEntryData) {
+                            addNewEntry(lastEntryData.content.trim(), lastEntryData.timestamp, lastEntryData.annotation);
+                        }
+                        const parts = line.split(' ');
+                        const dateStr = parts.slice(0, 2).join(' ');
+                        const content = parts.slice(2).join(' ');
+                        const date = new Date(dateStr);
+                        if(!isNaN(date.getTime())) {
+                            lastEntryData = {
+                                content: content,
+                                timestamp: date.getTime(),
+                                annotation: ''
+                            };
+                        } else {
+                            lastEntryData = null;
+                        }
+                    } else {
+                        // 多行正文，拼接
+                        if(lastEntryData) {
+                            lastEntryData.content += '\n' + line;
+                        }
+                    }
+                });
+                // 最后一条
+                if(lastEntryData) {
+                    addNewEntry(lastEntryData.content.trim(), lastEntryData.timestamp, lastEntryData.annotation);
+                }
+            });
                 });
                 
                 // 每5分钟自动刷新
-                setInterval(() => {
-                    fetch('./diary.md?t=' + Date.now())
-                        .then(response => response.text())
-                        .then(text => {
-                            const lines = text.split('\n').filter(line => line.trim() && !line.startsWith('----'));
-                            const list = document.querySelector('.list');
-                            list.innerHTML = '';
-                            lines.forEach(line => {
-                                if(line.startsWith('#')) return;
-                                const parts = line.split(' ');
-                                const dateStr = parts.slice(0, 2).join(' ');
-                                const content = parts.slice(2).join(' ');
-                                const date = new Date(dateStr);
-                                if(!isNaN(date.getTime())) {
-                                    addNewEntry(content, date.getTime());
-                                }
-                            });
-                        });
+setInterval(() => {
+    fetch('./diary.md?t=' + Date.now())
+        .then(response => response.text())
+        .then(text => {
+            const lines = text.split('\n').filter(line => line.trim() && !line.startsWith('----'));
+            const list = document.querySelector('.list');
+            list.innerHTML = '';
+            let lastEntryData = null;
+            const dateLineReg = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/;
+            lines.forEach(line => {
+                if(line.startsWith('#')) return;
+                if(line.startsWith('·')) {
+                    // 只更新注释，不渲染、不清空
+                    if(lastEntryData) {
+                        lastEntryData.annotation = line.slice(1).trim();
+                    }
+                } else if(dateLineReg.test(line)) {
+                    // 新日期前渲染上一个
+                    if(lastEntryData) {
+                        addNewEntry(lastEntryData.content.trim(), lastEntryData.timestamp, lastEntryData.annotation);
+                    }
+                    const parts = line.split(' ');
+                    const dateStr = parts.slice(0, 2).join(' ');
+                    const content = parts.slice(2).join(' ');
+                    const date = new Date(dateStr);
+                    if(!isNaN(date.getTime())) {
+                        lastEntryData = {
+                            content: content,
+                            timestamp: date.getTime(),
+                            annotation: ''
+                        };
+                    } else {
+                        lastEntryData = null;
+                    }
+                } else {
+                    // 多行正文，拼接
+                    if(lastEntryData) {
+                        lastEntryData.content += '\n' + line;
+                    }
+                }
+            });
+            // 最后一条
+            if(lastEntryData) {
+                addNewEntry(lastEntryData.content.trim(), lastEntryData.timestamp, lastEntryData.annotation);
+            }
+        });
                 }, 300000);
             </script>
         </main>
         <footer>
             <hr>
-            <p>© 2025 Casey</p>
+            <p>© 2025 Casey's Daily Blog</p>
             <a href="#" id="email-link" class="email-icon">
                 <i class="fas fa-envelope"></i>
             </a>
