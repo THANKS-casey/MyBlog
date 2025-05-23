@@ -5,5 +5,5 @@ http://localhost:8000/
 上传到Github
 git status
 git add .
-git commit -m Update blog files
+git commit -m 更新博客内容
 git push
