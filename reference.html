@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casey‘s Daily Blog</title>
+    <link rel="stylesheet" href="css/main.css">
+    <style>
+        .annotation {
+            font-size: 0.8em;
+            color: #0066CC;
+            margin: 1px 0 12px 0;
+            font-style: italic;
+            text-align: center;
+            font-family: 'Noto Serif SC', serif;
+            font-weight: 700;
+        }
+        .sentence {
+            white-space: pre-line;
+            margin: 8px 0 4px 0;
+            font-size: 1.05em;
+            word-break: break-all;
+            line-height: 1.7;
+            padding-left: 16px;
+            padding-right: 16px;
+            box-sizing: border-box;
+            transition: text-align 0.2s;
+            /* 关键：padding和box-sizing一致，center和left都生效 */
+        }
+        .sentence.center {
+            text-align: center;
+            margin-left: auto;
+            margin-right: auto;
+            max-width: 80%;
+        }
+        .sentence.left {
+            text-align: left;
+            margin-left: 0;
+            margin-right: 0;
+            max-width: 100%;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .notification-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .notification-content i {
+            color: #4CAF50;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <div class="header">
+            <p class="name">Casey的博客</p>
+            <hr>
+            <p class="intro">
+                欢迎来到我的世界！<br>
+                首先，祝你今天有个好心情，<br>
+                其他不重要了。<br>
+            </p>
+        </div>
+        <hr>
+        <main class="list">
+            <script>
+                function formatDate(date) {
+                    return `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')} ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}:${date.getSeconds().toString().padStart(2,'0')}`;
+                }
+
+                function sortByTime(container) {
+                    const items = Array.from(container.children);
+                    items.sort((a, b) => {
+                        const timeA = a.getAttribute('data-timestamp');
+                        const timeB = b.getAttribute('data-timestamp');
+                        return timeB - timeA;
+                    });
+                    items.forEach(item => container.appendChild(item));
+                }
+            </script>
+
+            <script>
+                // 关键的内容插入和居中/左对齐判断
+                function addNewEntry(content, timestamp = Date.now(), annotation = '') {
+                    const date = new Date(timestamp);
+                    const formattedTime = formatDate(date);
+
+                    const entry = document.createElement('div');
+                    entry.className = 'entry';
+                    entry.setAttribute('data-timestamp', timestamp);
+
+                    const sentenceDiv = document.createElement('div');
+                    sentenceDiv.className = 'sentence';
+                    sentenceDiv.textContent = content;
+
+                    // 测量用临时节点
+                    const temp = document.createElement('div');
+                    temp.style.position = 'absolute';
+                    temp.style.visibility = 'hidden';
+                    temp.style.left = '-9999px';
+                    temp.style.top = '0';
+                    temp.style.width = 'auto';
+                    temp.style.fontSize = '1.05em';
+                    temp.style.fontFamily = "'Noto Serif SC', serif";
+                    temp.style.fontWeight = '500';
+                    temp.style.paddingLeft = '16px';
+                    temp.style.paddingRight = '16px';
+                    temp.style.boxSizing = 'border-box';
+                    // 不加max-width，测量真实宽度
+                    temp.appendChild(sentenceDiv);
+                    document.body.appendChild(temp);
+
+                    // 获取父容器的实际内容宽度
+                    const list = document.querySelector('.list');
+                    const listStyle = window.getComputedStyle(list);
+                    const listPaddingLeft = parseFloat(listStyle.paddingLeft) || 0;
+                    const listPaddingRight = parseFloat(listStyle.paddingRight) || 0;
+                    const listContentWidth = list.clientWidth - listPaddingLeft - listPaddingRight;
+
+                    // 判断是否能一行放下
+                    // scrollWidth <= listContentWidth（含padding），且内容没有换行
+                    // pre-line时，scrollHeight>clientHeight说明换行
+                    let isSingleLine = true;
+                    if (sentenceDiv.scrollWidth > listContentWidth) {
+                        isSingleLine = false;
+                    } else if (sentenceDiv.scrollHeight > sentenceDiv.clientHeight) {
+                        isSingleLine = false;
+                    }
+
+                    if (isSingleLine) {
+                        sentenceDiv.classList.add('center');
+                    } else {
+                        sentenceDiv.classList.add('left');
+                    }
+
+                    document.body.removeChild(temp);
+
+                    const timeDiv = document.createElement('div');
+                    timeDiv.className = 'time';
+                    timeDiv.textContent = formattedTime;
+
+                    entry.appendChild(sentenceDiv);
+
+                    if(annotation) {
+                        const annotationDiv = document.createElement('div');
+                        annotationDiv.className = 'annotation';
+                        annotationDiv.textContent = annotation;
+                        entry.appendChild(annotationDiv);
+                    }
+
+                    entry.appendChild(timeDiv);
+
+                    list.insertBefore(entry, list.firstChild);
+                    sortByTime(list);
+
+                    return entry;
+                }
+            </script>
+
+            <script>
+                // 页面加载时自动排序
+                document.addEventListener('DOMContentLoaded', function() {
+                    const list = document.querySelector('.list');
+                    sortByTime(list);
+
+                    // 加载Markdown日记
+                    fetch('./diary.md?t=' + Date.now())
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('网络响应失败');
+                            }
+                            return response.text();
+                        })
+                        .then(text => {
+                            const lines = text.split('\n').filter(line => line.trim() && !line.startsWith('----'));
+                            let lastEntryData = null;
+                            const dateLineReg = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/;
+                            lines.forEach(line => {
+                                if(line.startsWith('#')) return; // 跳过标题行
+                                if(line.startsWith('·')) {
+                                    if(lastEntryData) {
+                                        lastEntryData.annotation = line.slice(1).trim();
+                                    }
+                                } else if(dateLineReg.test(line)) {
+                                    if(lastEntryData) {
+                                        addNewEntry(lastEntryData.content.trim(), lastEntryData.timestamp, lastEntryData.annotation);
+                                    }
+                                    const parts = line.split(' ');
+                                    const dateStr = parts.slice(0, 2).join(' ');
+                                    const content = parts.slice(2).join(' ');
+                                    const date = new Date(dateStr);
+                                    if(!isNaN(date.getTime())) {
+                                        lastEntryData = {
+                                            content: content,
+                                            timestamp: date.getTime(),
+                                            annotation: ''
+                                        };
+                                    } else {
+                                        lastEntryData = null;
+                                    }
+                                } else {
+                                    if(lastEntryData) {
+                                        lastEntryData.content += '\n' + line;
+                                    }
+                                }
+                            });
+                            if(lastEntryData) {
+                                addNewEntry(lastEntryData.content.trim(), lastEntryData.timestamp, lastEntryData.annotation);
+                            }
+                        });
+                });
+
+                // 每5分钟自动刷新
+                setInterval(() => {
+                    fetch('./diary.md?t=' + Date.now())
+                        .then(response => response.text())
+                        .then(text => {
+                            const lines = text.split('\n').filter(line => line.trim() && !line.startsWith('----'));
+                            const list = document.querySelector('.list');
+                            list.innerHTML = '';
+                            let lastEntryData = null;
+                            const dateLineReg = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/;
+                            lines.forEach(line => {
+                                if(line.startsWith('#')) return;
+                                if(line.startsWith('·')) {
+                                    if(lastEntryData) {
+                                        lastEntryData.annotation = line.slice(1).trim();
+                                    }
+                                } else if(dateLineReg.test(line)) {
+                                    if(lastEntryData) {
+                                        addNewEntry(lastEntryData.content.trim(), lastEntryData.timestamp, lastEntryData.annotation);
+                                    }
+                                    const parts = line.split(' ');
+                                    const dateStr = parts.slice(0, 2).join(' ');
+                                    const content = parts.slice(2).join(' ');
+                                    const date = new Date(dateStr);
+                                    if(!isNaN(date.getTime())) {
+                                        lastEntryData = {
+                                            content: content,
+                                            timestamp: date.getTime(),
+                                            annotation: ''
+                                        };
+                                    } else {
+                                        lastEntryData = null;
+                                    }
+                                } else {
+                                    if(lastEntryData) {
+                                        lastEntryData.content += '\n' + line;
+                                    }
+                                }
+                            });
+                            if(lastEntryData) {
+                                addNewEntry(lastEntryData.content.trim(), lastEntryData.timestamp, lastEntryData.annotation);
+                            }
+                        });
+                }, 300000);
+            </script>
+        </main>
+        <footer>
+            <hr>
+            <p>© 2025 Casey's Daily Blog</p>
+            <a href="#" id="email-link" class="email-icon">
+                <i class="fas fa-envelope"></i>
+            </a>
+        </footer>
+        <script>
+            document.getElementById('email-link').addEventListener('click', function(e) {
+                e.preventDefault();
+                const email = '1669676009@qq.com';
+                // 创建通知元素
+                const notification = document.createElement('div');
+                notification.className = 'notification';
+                notification.innerHTML = `
+                    <div class="notification-content">
+                        <i class="fas fa-check-circle"></i>
+                        <span>邮箱已复制: ${email}</span>
+                    </div>
+                `;
+                document.body.appendChild(notification);
+
+                // 显示通知
+                setTimeout(() => notification.classList.add('show'), 10);
+
+                // 3秒后自动隐藏
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+
+                navigator.clipboard.writeText(email);
+            });
+        </script>
+    </div>
+</body>
+</html>
