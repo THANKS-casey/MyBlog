@@ -132,7 +132,7 @@
                     }
 
                     const displayLength = getDisplayLength(content);
-                    const isLong = displayLength > 60 || content.includes('\n');
+                    const isLong = displayLength > 80 || content.includes('\n'); // 将阈值从60调整为80
 
                     if(isLong) {
                         sentenceDiv.classList.add('left');
