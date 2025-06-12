@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Casey's Daily Blog</title>
+    <title>Casey‘s Daily Blog</title>
     <link rel="stylesheet" href="css/main.css">
     <style>
         .annotation {
@@ -29,11 +29,11 @@
             text-align: center;
             margin-left: auto;
             margin-right: auto;
-            max-width: 80%;
+            max-width: 100%; /* 修改为100%，让文本居中但不强制换行 */
         }
         
         .sentence.left {
-            text-align: left;
+            text-align: left !important; /* 添加!important确保左对齐 */
             margin-left: 0;
             margin-right: 0;
             padding-left: 16px;
@@ -116,23 +116,30 @@
                     const sentenceDiv = document.createElement('div');
                     sentenceDiv.className = 'sentence';
                     
-                    // 修改判断逻辑，区分中英文字符计算显示长度
-                    function getDisplayLength(str) {
-                        let length = 0;
-                        for (let i = 0; i < str.length; i++) {
-                            const char = str[i];
-                            // 中文字符、全角符号等宽度为2，英文字符宽度为1
-                            if (/[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/.test(char)) {
-                                length += 2;
-                            } else {
-                                length += 1;
-                            }
-                        }
-                        return length;
+                    // 创建临时元素来测量文本宽度
+                    function willTextWrap(text) {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.style.position = 'absolute';
+                        tempDiv.style.visibility = 'hidden';
+                        tempDiv.style.width = (document.querySelector('.content').offsetWidth - 40) + 'px'; // 减去padding
+                        tempDiv.style.fontSize = '1.05em';
+                        tempDiv.style.fontFamily = "'Noto Serif SC', serif";
+                        tempDiv.style.lineHeight = '1.7';
+                        tempDiv.style.wordWrap = 'break-word';
+                        tempDiv.style.whiteSpace = 'nowrap'; // 关键：使用nowrap来测试是否会换行
+                        tempDiv.textContent = text;
+
+                        document.body.appendChild(tempDiv);
+                        const textWidth = tempDiv.scrollWidth; // 使用scrollWidth获取实际内容宽度
+                        const containerWidth = tempDiv.clientWidth; // 容器宽度
+                        document.body.removeChild(tempDiv);
+
+                        return textWidth > containerWidth;
                     }
 
-                    const displayLength = getDisplayLength(content);
-                    const isLong = displayLength > 60 || content.includes('\n');
+                    const hasLineBreak = content.includes('\n');
+                    const willWrap = willTextWrap(content);
+                    const isLong = hasLineBreak || willWrap;
 
                     if(isLong) {
                         sentenceDiv.classList.add('left');

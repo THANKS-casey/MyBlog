@@ -29,11 +29,11 @@
             text-align: center;
             margin-left: auto;
             margin-right: auto;
-            max-width: 80%;
+            max-width: 100%; /* 修改为100%，让文本居中但不强制换行 */
         }
         
         .sentence.left {
-            text-align: left;
+            text-align: left !important; /* 添加!important确保左对齐 */
             margin-left: 0;
             margin-right: 0;
             padding-left: 16px;
@@ -71,6 +71,15 @@
         .notification-content i {
             color: #4CAF50;
             font-size: 1.2em;
+        }
+    </style>
+    <style>
+        body {
+            background-image: url("background.jpg") !important;
+            background-size: 100% !important; /* 修改这里，从cover改为100%或更小的百分比 */
+            background-position: center !important;
+            background-repeat: no-repeat !important; /* 确保图片不重复 */
+            background-attachment: fixed !important; /* 确保背景固定 */
         }
     </style>
 </head>
@@ -116,23 +125,30 @@
                     const sentenceDiv = document.createElement('div');
                     sentenceDiv.className = 'sentence';
                     
-                    // 修改判断逻辑，区分中英文字符计算显示长度
-                    function getDisplayLength(str) {
-                        let length = 0;
-                        for (let i = 0; i < str.length; i++) {
-                            const char = str[i];
-                            // 中文字符、全角符号等宽度为2，英文字符宽度为1
-                            if (/[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/.test(char)) {
-                                length += 2;
-                            } else {
-                                length += 1;
-                            }
-                        }
-                        return length;
+                    // 创建临时元素来测量文本宽度
+                    function willTextWrap(text) {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.style.position = 'absolute';
+                        tempDiv.style.visibility = 'hidden';
+                        tempDiv.style.width = (document.querySelector('.content').offsetWidth - 40) + 'px'; // 减去padding
+                        tempDiv.style.fontSize = '1.05em';
+                        tempDiv.style.fontFamily = "'Noto Serif SC', serif";
+                        tempDiv.style.lineHeight = '1.7';
+                        tempDiv.style.wordWrap = 'break-word';
+                        tempDiv.style.whiteSpace = 'nowrap'; // 关键：使用nowrap来测试是否会换行
+                        tempDiv.textContent = text;
+
+                        document.body.appendChild(tempDiv);
+                        const textWidth = tempDiv.scrollWidth; // 使用scrollWidth获取实际内容宽度
+                        const containerWidth = tempDiv.clientWidth; // 容器宽度
+                        document.body.removeChild(tempDiv);
+
+                        return textWidth > containerWidth;
                     }
 
-                    const displayLength = getDisplayLength(content);
-                    const isLong = displayLength > 80 || content.includes('\n'); // 将阈值从60调整为80
+                    const hasLineBreak = content.includes('\n');
+                    const willWrap = willTextWrap(content);
+                    const isLong = hasLineBreak || willWrap;
 
                     if(isLong) {
                         sentenceDiv.classList.add('left');

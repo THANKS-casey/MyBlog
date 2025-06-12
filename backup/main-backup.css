@@ -9,11 +9,9 @@ body {
   padding: 0;
   color: #222;
   background-color: #f8f4e6;
-  background-image: url("../../background.jpg");
-  background-size: 100%; /* 修改这里，从cover改为100%或更小的百分比 */
+  background-image: url("../augustine-wong-3Om4DHcaAc0-unsplash.jpg");
+  background-size: cover;
   background-position: center;
-  background-repeat: no-repeat; /* 添加这行确保图片不重复 */
-  background-attachment: fixed; /* 添加这行确保背景固定 */
 }
 
 .content {
