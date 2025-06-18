@@ -26,19 +26,20 @@
         }
         
         .sentence.center {
-            text-align: center;
+            text-align: center !important;
             margin-left: auto;
             margin-right: auto;
-            max-width: 100%; /* 修改为100%，让文本居中但不强制换行 */
+            max-width: 100%;
         }
         
         .sentence.left {
-            text-align: left !important; /* 添加!important确保左对齐 */
+            text-align: left !important;
             margin-left: 0;
             margin-right: 0;
             padding-left: 16px;
             padding-right: 16px;
             max-width: 100%;
+            white-space: pre-line !important; /* 修改这里：改为pre-line保留换行 */
         }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -130,20 +131,21 @@
                         const tempDiv = document.createElement('div');
                         tempDiv.style.position = 'absolute';
                         tempDiv.style.visibility = 'hidden';
-                        tempDiv.style.width = (document.querySelector('.content').offsetWidth - 40) + 'px'; // 减去padding
+                        tempDiv.style.width = (document.querySelector('.content').offsetWidth - 40) + 'px';
                         tempDiv.style.fontSize = '1.05em';
                         tempDiv.style.fontFamily = "'Noto Serif SC', serif";
                         tempDiv.style.lineHeight = '1.7';
                         tempDiv.style.wordWrap = 'break-word';
-                        tempDiv.style.whiteSpace = 'nowrap'; // 关键：使用nowrap来测试是否会换行
+                        tempDiv.style.whiteSpace = 'normal'; // 改为normal，模拟实际换行行为
                         tempDiv.textContent = text;
 
                         document.body.appendChild(tempDiv);
-                        const textWidth = tempDiv.scrollWidth; // 使用scrollWidth获取实际内容宽度
-                        const containerWidth = tempDiv.clientWidth; // 容器宽度
+                        const actualHeight = tempDiv.offsetHeight;
+                        const lineHeight = parseFloat(getComputedStyle(tempDiv).lineHeight);
                         document.body.removeChild(tempDiv);
 
-                        return textWidth > containerWidth;
+                        // 如果高度超过单行高度，说明发生了换行
+                        return actualHeight > lineHeight * 1.2; // 1.2是容错系数
                     }
 
                     const hasLineBreak = content.includes('\n');
