@@ -1,0 +1,8 @@
+baseURL = "http://example.org/"
+title = "My New Blog"
+theme = "mytheme"
+
+[params]
+  description = "My personal blog"
+  author = "Your Name"
+  accentColor = "#000000"
